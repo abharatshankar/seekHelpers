@@ -16,7 +16,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => Provider.of<UserProvider>(context, listen: false).fetchUsers());
+    Future.microtask(() =>
+        Provider.of<UserProvider>(context, listen: false).fetchUsers());
   }
 
   @override
@@ -24,102 +25,116 @@ class _HomeScreenState extends State<HomeScreen> {
     final userProvider = Provider.of<UserProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('User Directory'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => userProvider.fetchUsers(),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color.fromARGB(255, 172, 146, 211), Color(0xFFE5DEFC)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search users...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-                fillColor: Colors.white,
-                filled: true,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      hintText: 'Search users...',
+                      hintStyle: TextStyle(color: Colors.grey),
+                      border: InputBorder.none,
+                      prefixIcon: Icon(Icons.search, color: Colors.black54),
+                      contentPadding: EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onChanged: userProvider.search,
+                  ),
+                ),
               ),
-              onChanged: userProvider.search,
-            ),
+              // User List
+              Expanded(
+                child: Builder(
+                  builder: (context) {
+                    if (userProvider.isLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (userProvider.error != null) {
+                      return Center(child: Text(userProvider.error!));
+                    } else if (userProvider.users.isEmpty) {
+                      return const Center(child: Text("No users found"));
+                    } else {
+                      return ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 90),
+                        itemCount: userProvider.users.length,
+                        itemBuilder: (context, index) {
+                          final user = userProvider.users[index];
+                          return UserTile(
+                            user: user,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                PageRouteBuilder(
+                                  pageBuilder: (_, __, ___) => UserDetailScreen(user: user),
+                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                    return FadeTransition(opacity: animation, child: child);
+                                  },
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
-      body: Builder(
-        builder: (context) {
-          if (userProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (userProvider.error != null) {
-            return Center(child: Text(userProvider.error!));
-          } else if (userProvider.users.isEmpty) {
-            return const Center(child: Text("No users found"));
-          } else {
-            // Responsive Layout
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth < 600) {
-                  // Mobile: ListView
-                  return ListView.builder(
-                    itemCount: userProvider.users.length,
-                    itemBuilder: (context, index) {
-                      final user = userProvider.users[index];
-                      return UserTile(
-                        user: user,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder: (_, __, ___) => UserDetailScreen(user: user),
-                              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                return FadeTransition(opacity: animation, child: child);
-                              },
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
-                } else {
-                  // Tablet/Desktop: GridView
-                  return GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: constraints.maxWidth ~/ 300,
-                      childAspectRatio: 3,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                    ),
-                    itemCount: userProvider.users.length,
-                    padding: const EdgeInsets.all(16),
-                    itemBuilder: (context, index) {
-                      final user = userProvider.users[index];
-                      return UserTile(
-                        user: user,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => UserDetailScreen(user: user)),
-                          );
-                        },
-                      );
-                    },
-                  );
-                }
-              },
-            );
-          }
-        },
+      floatingActionButton: Container(
+        margin: const EdgeInsets.only(bottom: 24, right: 8),
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AddUserScreen()));
+          },
+          elevation: 6,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+                shape: BoxShape.circle, // circular shape
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.blueAccent,
+                    Colors.red,
+                  ],
+                ),
+              ),
+              child: Icon(
+                Icons.add,
+                color: Colors.white,
+              ),
+          ),
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const AddUserScreen()));
-        },
-        child: const Icon(Icons.add),
-        tooltip: "Add User",
-      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 }
